@@ -1,6 +1,6 @@
 FROM microsoft/aspnet
 
-COPY . /app
+COPY /src/fake-dnx /app
 WORKDIR /app
 RUN ["dnu", "restore"]
 
