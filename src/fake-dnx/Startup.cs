@@ -12,9 +12,11 @@ namespace fake_aspnet
         public Startup(IHostingEnvironment env)
         {
             // Setup configuration sources.
-            Configuration = new Configuration()
-                .AddJsonFile("config.json")
-                .AddEnvironmentVariables();
+            var temp = new Configuration();
+            temp.AddJsonFile("config.json", optional: true);
+            temp.AddEnvironmentVariables();
+
+            Configuration = temp;
         }
 
         public IConfiguration Configuration { get; set; }
