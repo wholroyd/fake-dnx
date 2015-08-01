@@ -1,22 +1,22 @@
 ﻿using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Diagnostics;
 using Microsoft.AspNet.Hosting;
-using Microsoft.Framework.ConfigurationModel;
+using Microsoft.Framework.Configuration;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
+using Microsoft.Framework.Runtime;
 
 namespace fake_aspnet
 {
     public class Startup
     {
-        public Startup(IHostingEnvironment env)
+        public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
         {
             // Setup configuration sources.
-            var temp = new Configuration();
-            temp.AddJsonFile("config.json", optional: true);
-            temp.AddEnvironmentVariables();
-
-            Configuration = temp;
+            Configuration = new ConfigurationBuilder(appEnv.ApplicationBasePath)
+                .AddJsonFile("config.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
         }
 
         public IConfiguration Configuration { get; set; }
@@ -24,14 +24,10 @@ namespace fake_aspnet
         // This method gets called by the runtime.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<AppSettings>(provider => Configuration.GetSubKey("AppSettings"));
+            services.Configure<AppSettings>(provider => Configuration.GetConfigurationSection("AppSettings"));
 
             // Add MVC services to the services container.
             services.AddMvc();
-
-            // Uncomment the following line to add Web API services which makes it easier to port Web API 2 controllers.
-            // You will also need to add the Microsoft.AspNet.Mvc.WebApiCompatShim package to the 'dependencies' section of project.json.
-            // services.AddWebApiConventions();
 
         }
 
