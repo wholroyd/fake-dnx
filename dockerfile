@@ -1,8 +1,26 @@
 FROM microsoft/aspnet
 
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q \
+    curl \
+    python \
+    build-essential \
+    git \
+    ca-certificates
+
+RUN mkdir /nodejs && \
+    curl http://nodejs.org/dist/v0.10.33/node-v0.10.33-linux-x64.tar.gz | \
+    tar xvzf - -C /nodejs --strip-components=1
+
+ENV PATH $PATH:/nodejs/bin
+
+RUN npm install -g gulp bower
+
+RUN ["dnu", "restore"]
+RUN ["npm", "install", "."]
+RUN ["gulp", "copy"]
+
 COPY /src/fake-dnx /app
 WORKDIR /app
-RUN ["dnu", "restore"]
 
 EXPOSE 5004
 ENTRYPOINT ["dnx", ".", "kestrel"]

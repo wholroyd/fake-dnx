@@ -17,7 +17,8 @@
         "Microsoft.Framework.Runtime.Abstractions": "1.0.0-beta6",
         "Microsoft.Framework.Configuration": "1.0.0-beta6",
         "Microsoft.Framework.Configuration.Json": "1.0.0-beta6",
-        "Microsoft.Framework.Configuration.EnvironmentVariables": "1.0.0-beta6"
+        "Microsoft.Framework.Configuration.EnvironmentVariables": "1.0.0-beta6",
+"Kestrel": "1.0.0-beta6"
     },
 
     "commands": {
