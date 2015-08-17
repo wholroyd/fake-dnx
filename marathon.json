@@ -1,0 +1,16 @@
+{
+  "id": "fake-dnx",
+  "cmd": "dnx . kestrel",
+  "cpus": 0.5,
+  "mem": 32.0,
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "wholroyd/fake-dnx:latest",
+      "network": "BRIDGE",
+      "portMappings": [
+        { "containerPort": 5004, "hostPort": 0 }
+      ]
+    }
+  }
+}
