@@ -1,15 +1,20 @@
-FROM wholroyd/centos-dnx
+FROM wholroyd/centos-dnx:latest
 
-RUN ["dnu", "restore"]
-RUN ["bower", "install", "."]
-RUN ["gulp", "copy"]
+MAINTAINER William Holroyd <wholroyd@gmail.com>
 
-RUN yum -y autoremove && \
-    yum clear all && \
-    rpm --rebuilddb
+EXPOSE 5004
 
 COPY /src/fake-dnx /app
 WORKDIR /app
 
-EXPOSE 5004
-ENTRYPOINT ["dnx", ".", "kestrel"]
+RUN dnu restore && \
+    npm install && \
+    npm install -g bower && \
+    npm install -g gulp && \
+    bower install --allow-root
+
+RUN yum -y autoremove && \
+    yum clean all && \
+    rpm --rebuilddb
+
+CMD ["dnx", ".", "kestrel"]
