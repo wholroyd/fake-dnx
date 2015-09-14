@@ -1,9 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.22823.1
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "fake_dnx", "src\fake-dnx\fake_dnx.xproj", "{B9CD4B9F-1D37-47DB-8CD0-0E891F15A326}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "fake-dnx.tests", "tests\fake-dnx.tests\fake-dnx.tests.xproj", "{57C77621-7F1B-462B-B4BA-C57967D53128}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3C73DF6C-CB6C-4806-A237-943B4CBE2AB5}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +22,10 @@ Global
 		{B9CD4B9F-1D37-47DB-8CD0-0E891F15A326}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9CD4B9F-1D37-47DB-8CD0-0E891F15A326}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9CD4B9F-1D37-47DB-8CD0-0E891F15A326}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57C77621-7F1B-462B-B4BA-C57967D53128}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57C77621-7F1B-462B-B4BA-C57967D53128}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57C77621-7F1B-462B-B4BA-C57967D53128}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57C77621-7F1B-462B-B4BA-C57967D53128}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

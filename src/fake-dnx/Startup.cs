@@ -24,11 +24,10 @@ namespace fake_aspnet
         // This method gets called by the runtime.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<AppSettings>(provider => Configuration.GetConfigurationSection("AppSettings"));
+            services.Configure<AppSettings>(provider => Configuration.GetSection("AppSettings"));
 
             // Add MVC services to the services container.
             services.AddMvc();
-
         }
 
         // Configure is called after ConfigureServices is called.
