@@ -11,6 +11,10 @@ var paths = {
   lib: "./" + project.webroot + "/lib/"
 };
 
+gulp.task("default", function(cb) {
+    // Do nothing on purpose
+})
+
 gulp.task("clean", function (cb) {
   rimraf(paths.lib, cb);
 });

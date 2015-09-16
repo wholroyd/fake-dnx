@@ -21,5 +21,11 @@ namespace fake_dnx.tests
             var typed = Assert.IsType<ViewResult>(result);
             Assert.Equal("Fake App", typed.ViewData["Title"]);
         }
+
+        [Fact]
+        public void TestingTheDnxTestCommand()
+        {
+            Assert.True(false);
+        }
     }
 }
