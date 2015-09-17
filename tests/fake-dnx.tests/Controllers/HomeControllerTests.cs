@@ -2,6 +2,7 @@
 using Microsoft.AspNet.Mvc;
 using Xunit;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 namespace fake_dnx.tests
 {
     // This project can output the Class library as a NuGet Package.
