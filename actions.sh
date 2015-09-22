@@ -4,25 +4,24 @@ function do_build {
 
    current=`pwd`
 
-   echo
-   echo Restoring packages...
+   printf "\n${header}Starting package restoration...${nc}\n"
 
    # restore the nuget packages
    for dir in $(find -name 'project.json' -printf '%h\n' | sort -u)
    do
       cd $current
       cd $dir
-      echo Restoring for DNX in $(pwd)
+      echo -Restoring for DNX in $(pwd)
       dnu restore
    done
    cd $current
 
    # restore the npm packages
-   for dir in $(find -name 'package.json' -printf '%h\n' | sort -u)
+   for dir in $(find -name 'package.json' -printf '%h\n' | sort -u | grep -v node_modules)
    do
       cd $current
       cd $dir
-      echo Restoring for NPM in $(pwd)
+      echo -Restoring for NPM in $(pwd)
       npm install
       npm install -g bower
       npm install -g gulp
@@ -36,16 +35,15 @@ function do_build {
    do
       cd $current
       cd $dir
-      echo Restoring for Bower in $(pwd)
-      bower install
+      echo -Restoring for Bower in $(pwd)
+      bower install --allow-root
    done
    cd $current
 
-   echo
-   echo Building source...
+   printf "\n${header}Building source...${nc}\n"
 
    # restore the typescript typings
-   for dir in $(find -name 'tsconfig.js' -printf '%h\n' | sort -u)
+   for dir in $(find -name 'tsd.json' -printf '%h\n' | sort -u)
    do
       cd $current
       cd $dir
@@ -64,37 +62,134 @@ function do_build {
    done 
    cd $current
 
-   echo
-   echo Completed build phase 
-   echo
+   printf "\n${green}Completed build phase${nc}\n"
 }
 
 function do_test {
-   echo Test
+
+   current=`pwd`
+
+   printf "\n${header}Starting tests...${nc}\n"
+
+   # restore the nuget packages
+   for dir in $(find -name 'project.json' -printf '%h\n' | sort -u | grep ./tests)
+   do
+      cd $current
+      cd $dir
+      echo -Restoring for DNX in $(pwd)
+      dnx test
+   done
+   cd $current
+
+   printf "\n${green}Completed tests phase${nc}\n"
    
 }
 
-function do_docker_build {
-   echo Docker
+function do_create {
+
+  printf "\n${header}Starting Docker image creation...${nc}\n"
+
+  # We expect that when this script is ran for docker image creation that
+  # there are some particular settings set prior to starting, or are given
+  # on the command line when invoking it.
+
+  # We require {team} {repo}, or take from git
+  verify_repository
+
+  docker build -t $DOCKER_TEAM/$DOCKER_REPO:build .
+
+  printf "\n${header}Starting image optimization/layer-merging...${nc}\n"
+
+  # Create image tagged 'latest'
+  ID=$(docker run -d $DOCKER_TEAM/$DOCKER_REPO:build /bin/bash)
+  docker export $ID | docker import - $DOCKER_TEAM/$DOCKER_REPO:latest
+
+  # Create image tagged by git commit id
+  TAG=$(git rev-parse --short HEAD)
+  docker export $ID | docker import - $DOCKER_TEAM/$DOCKER_REPO:$TAG
+
+  printf "\n${header}Starting image and container cleanup...${nc}\n"
+  docker rm $(docker ps -l -q)
+  docker rmi -f `docker images $DOCKER_TEAM/$DOCKER_REPO | grep "build" | awk 'BEGIN{FS=OFS=" "}{print $3}'`
+
+  printf "\n${green}Completed creation phase${nc}\n\n"
 }
 
-function do_docker_deploy {
-   echo Deploy
+function do_deploy {
+
+  printf "\n${header}Starting Docker image deployment...${nc}\n"
+
+  # We expect that when this script is ran for docker image deployment that
+  # there are some particular settings set prior to starting, or are given
+  # on the command line when invoking it.
+
+  # We require {team} {repo}, or take from git
+  verify_repository
+
+  # We require {username} {password} {email}, or fail
+  verify_authentication
+
+  printf "\nRegistry authentication..."
+  docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
+
+  printf "\nRegistry upload..."
+  docker push -f $DOCKER_TEAM/$DOCKER_REPO:latest
+
+  printf "\n${green}Completed deploy phase${nc}\n\n"
 }
 
-function do_universe {
-   do_compile
-   do_test
-   do_docker_build
-   do_docker_deploy
+function do_clean {
+  
+  echo "not yet implemented"
+
 }
 
-function do_galaxy {
-   do_compile
-   do_test
-   do_docker_build
+function verify_repository {
+  if [ -n "$DOCKER_TEAM" ] && [ -n "$DOCKER_REPO" ]
+  then
+    echo -Using environment variables
+  else
+    if [ -n "$2" ] && [ -n "$3" ]
+    then
+      echo -Using script parameters
+      DOCKER_TEAM=$2
+      DOCKER_REPO=$3
+    else
+      echo -Using git information
+      DOCKER_TEAM=`git remote show origin | grep "Fetch URL:" | sed "s#^.*/\(.*\)/\(.*\).git#\1#"`
+      DOCKER_REPO=`git remote show origin | grep "Fetch URL:" | sed "s#^.*/\(.*\)/\(.*\).git#\2#"`
+    fi
+  fi
 }
 
+function verify_authentication {
+  if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ] && [ -n "$DOCKER_EMAIL" ]
+  then
+    echo -Using environment variables
+  else
+    if [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
+    then
+      echo -Using script parameters
+      DOCKER_USERNAME=$4
+      DOCKER_PASSWORD=$5
+      DOCKER_EMAIL=$6
+    else
+      printf "\n-Unable to continue, the following values were not provided:"
+      printf "\n\tDOCKER_USERNAME\n\tDOCKER_PASSWORD\n\tDOCKER_EMAIL\n"
+
+      printf "\n${red}Failed deploy phase${nc}\n\n"
+      exit 1
+    fi
+  fi
+}
+
+# Console coloring
+red='\033[0;31m'
+green='\033[0;32m'
+header='\033[0;34m'
+nc='\033[0m' # No Color
+
+# Determine what needs to be ran
 case $1 in
 build)
    do_build
@@ -102,29 +197,39 @@ build)
 test)
    do_test
    ;;
-docker)
-   do_docker_build
+create)
+   do_create
    ;;
 deploy)
-   do_docker_deploy
+   do_deploy
    ;;
-universe)
-   do_universe
-   ;;
-galaxy)
-   do_galaxy
+clean)
+   do_clean
    ;;
 *)
-   echo ""
-   echo "Usage: $0 [OPTION]"
-   echo "    OPTION            Performs..."
-   echo "    build             ...a compilation, if required"
-   echo "    test              ...all tests in order of unit, integration, and functional"
-   echo "    docker            ...a Docker image build"
-   echo "    deploy            ...a Docker image push"
-   echo "    "
-   echo "    universe          ...in order the options: compile, test, docker, deploy"
-   echo "    galaxy            ...in order the options: compile, test, docker"
-   echo ""
+  printf "\n"
+  printf "Usage: $0 [OPTION]\n"
+  printf "  OPTION            Performs...\n"
+  printf "  ----------------  ----------------------------------------------------------\n"
+  printf "  build             ...a compilation, if required\n"
+  printf "  test              ...all tests in order of unit, integration, and functional\n"
+  printf "  create            ...a Docker image\n"
+  printf "  deploy            ...a Docker image\n"
+  printf "\n"
+  printf "  clean             ...all things created or populated during build or test\n"
+  printf "\n"
+  printf "The following values are required for the given commands:\n"
+  printf "\n"
+  printf "  $0 create [team] [repo]                                 ...or set:\n"
+  printf "    \$DOCKER_TEAM\n"
+  printf "    \$DOCKER_REPO\n"
+  printf "\n"
+  printf "  $0 deploy [team] [repo] [username] [password] [email]   ...or set:\n"
+  printf "    \$DOCKER_TEAM\n"
+  printf "    \$DOCKER_REPO\n"
+  printf "    \$DOCKER_USERNAME\n"
+  printf "    \$DOCKER_PASSWORD\n"
+  printf "    \$DOCKER_EMAIL\n"
+  printf "\n"
    ;;
 esac   

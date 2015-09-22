@@ -7,13 +7,8 @@ EXPOSE 5004
 COPY /src/fake-dnx /app
 WORKDIR /app
 
-RUN dnu restore && \
-    npm install && \
-    npm install -g bower && \
-    npm install -g gulp && \
-    bower install --allow-root
-
-RUN yum -y autoremove && \
+RUN yum makecache fast && \
+    yum -y autoremove && \
     yum clean all && \
     rpm --rebuilddb
 
