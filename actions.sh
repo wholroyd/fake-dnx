@@ -133,7 +133,7 @@ function do_deploy {
   docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
 
   printf "\nRegistry upload..."
-  docker push -f $DOCKER_TEAM/$DOCKER_REPO:latest
+  docker push $DOCKER_TEAM/$DOCKER_REPO:latest
 
   printf "\n${green}Completed deploy phase${nc}\n\n"
 }
@@ -147,15 +147,15 @@ function do_clean {
 function verify_repository {
   if [ -n "$DOCKER_TEAM" ] && [ -n "$DOCKER_REPO" ]
   then
-    echo -Using environment variables
+    echo -Using environment variables for repository
   else
     if [ -n "$2" ] && [ -n "$3" ]
     then
-      echo -Using script parameters
+      echo -Using script parameters for repository
       DOCKER_TEAM=$2
       DOCKER_REPO=$3
     else
-      echo -Using git information
+      echo -Using git information for repository
       DOCKER_TEAM=`git remote show origin | grep "Fetch URL:" | sed "s#^.*/\(.*\)/\(.*\).git#\1#"`
       DOCKER_REPO=`git remote show origin | grep "Fetch URL:" | sed "s#^.*/\(.*\)/\(.*\).git#\2#"`
     fi
@@ -165,11 +165,11 @@ function verify_repository {
 function verify_authentication {
   if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ] && [ -n "$DOCKER_EMAIL" ]
   then
-    echo -Using environment variables
+    echo -Using environment variables for authentication
   else
     if [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
     then
-      echo -Using script parameters
+      echo -Using script parameters for authentication
       DOCKER_USERNAME=$4
       DOCKER_PASSWORD=$5
       DOCKER_EMAIL=$6
