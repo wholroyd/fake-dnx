@@ -2,90 +2,156 @@
 
 function do_build {
 
-   current=`pwd`
+  local project=`pwd`
+  local failed=false
 
-   printf "\n${header}Starting package restoration...${nc}\n"
+  printf "\n${header}Starting package restoration & compilation...${nc}\n\n"
 
-   # restore the nuget packages
-   for dir in $(find -name 'project.json' -printf '%h\n' | sort -u)
-   do
-      cd $current
-      cd $dir
-      echo -Restoring for DNX in $(pwd)
-      dnu restore
-   done
-   cd $current
+  # restore the nuget packages
+  for location in $(find -name 'project.json' -printf '%h\n' | sort -u)
+  do
+    cd $project
+    cd $location
+    echo -Restoring for DNX in ${location}
+    MONO_THREADS_PER_CPU=2000
 
-   # restore the npm packages
-   for dir in $(find -name 'package.json' -printf '%h\n' | sort -u | grep -v node_modules)
-   do
-      cd $current
-      cd $dir
-      echo -Restoring for NPM in $(pwd)
-      npm install
-      npm install -g bower
-      npm install -g gulp
-      npm install -g typescript
-      npm install -g tsd
-   done
-   cd $current
+    dnu restore
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
 
-   # restore the bower packages
-   for dir in $(find -name '.bowerrc' -printf '%h\n' | sort -u)
-   do
-      cd $current
-      cd $dir
-      echo -Restoring for Bower in $(pwd)
-      bower install --allow-root
-   done
-   cd $current
+    MONO_THREADS_PER_CPU=100
+  done
+  cd $project
 
-   printf "\n${header}Building source...${nc}\n"
+  # restore the npm packages
+  for location in $(find -name 'package.json' -printf '%h\n' | sort -u | grep -v node_modules)
+  do
+    cd $project
+    cd $location
+    echo -Restoring with NPM in ${location}
 
-   # restore the typescript typings
-   for dir in $(find -name 'tsd.json' -printf '%h\n' | sort -u)
-   do
-      cd $current
-      cd $dir
-      echo Restoring for TypeScript in $(pwd)
-      tsd restore
-   done
-   cd $current
+    # ensure we have a user writeable directory for NPM global installations
+    if [[ ! -a ~/.npm-global ]]; then
+      mkdir ~/.npm-global 
+      npm config set prefix '~/npm-global' 
+      if [[ $? != 0 ]]; then
+        failed=true;
+      fi
 
-   # build using gulp
-   for dir in $(find -name 'gulpfile.js' -printf '%h\n' | sort -u)
-   do  
-      cd $current
-      cd $dir
-      echo Building for Gulp in $(pwd)
-      gulp default
-   done 
-   cd $current
+      export PATH="~/npm-global/bin:${PATH}"
+    fi
 
-   printf "\n${green}Completed build phase${nc}\n"
+    npm install
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+
+    npm install -g typescript
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+
+    npm install -g bower
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+
+    npm install -g gulp
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+  done
+  cd $project
+
+  # restore the typescript packages
+  for location in $(find -name 'tsd.json' -printf '%h\n' | sort -u)
+  do
+    cd $project
+    cd $dir
+    echo -Restoring for TypeScript in ${location}
+
+    tsd restore
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+  done
+  cd $project
+
+  # restore the bower packages
+  for location in $(find -name '.bowerrc' -printf '%h\n' | sort -u)
+  do
+    cd $project
+    cd $location
+    echo -Restoring with Bower in ${location}
+
+    bower install
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+  done
+  cd $project
+
+  printf "\n${header}Building source...${nc}\n"
+
+  # build using gulp
+  for location in $(find -name 'gulpfile.js' -printf '%h\n' | sort -u)
+  do
+    cd $project
+    cd $location
+    echo -Building with Gulp in ${location}
+
+    gulp default
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+  done
+  cd $project
+
+  if [ "$failed" = true ] ; then
+    printf "\n${red}Failed build phase${nc}\n\n"
+    return 1;
+  else
+    printf "\n${green}Completed build phase${nc}\n\n"
+  fi
 }
 
 function do_test {
 
-   current=`pwd`
+  local project=`pwd`
+  local failed=false
 
-   printf "\n${header}Starting tests...${nc}\n"
+  printf "\n${header}Starting testing...${nc}\n\n"
 
-   # restore the nuget packages
-   for dir in $(find -name 'project.json' -printf '%h\n' | sort -u | grep ./tests)
-   do
-      cd $current
-      cd $dir
-      echo -Restoring for DNX in $(pwd)
-      dnx test
-   done
-   cd $current
+  # test the .NET code
+  for location in $(find -name 'project.json' -printf '%h\n' | sort -u | grep ./tests)
+  do
+    cd $project
+    cd $location
+    echo -Testing for DNX in ${location}
 
-   printf "\n${green}Completed tests phase${nc}\n"
-   
+    dnx test
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+  done
+  cd $project
+
+  # TODO: test the JS code
+
+  # TODO: test the TS code
+
+  if [ "$failed" = true ]; then
+    printf "\n${red}Failed testing phase${nc}\n\n"
+    return 1;
+  else
+    printf "\n${green}Completed testing phase${nc}\n\n"
+  fi
 }
 
 function do_create {
+
+  local failed=false
 
   printf "\n${header}Starting Docker image creation...${nc}\n"
 
@@ -96,28 +162,52 @@ function do_create {
   # We require {team} {repo}, or take from git
   verify_repository
 
+  printf "\n${header}Starting image creation...${nc}\n"
   docker build -t $DOCKER_TEAM/$DOCKER_REPO:build .
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
   printf "\n${header}Starting image optimization/layer-merging...${nc}\n"
 
   # Create image tagged 'latest'
   ID=$(docker run -d $DOCKER_TEAM/$DOCKER_REPO:build /bin/bash)
   docker export $ID | docker import - $DOCKER_TEAM/$DOCKER_REPO:latest
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
   # Create image tagged by git commit id
   TAG=$(git rev-parse --short HEAD)
   docker export $ID | docker import - $DOCKER_TEAM/$DOCKER_REPO:$TAG
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
-  printf "\n${header}Starting image and container cleanup...${nc}\n"
+  printf "\n${header}Starting image and container cleanup...${nc}"
   docker rm $(docker ps -l -q)
-  docker rmi -f `docker images $DOCKER_TEAM/$DOCKER_REPO | grep "build" | awk 'BEGIN{FS=OFS=" "}{print $3}'`
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
-  printf "\n${green}Completed creation phase${nc}\n\n"
+  docker rmi -f `docker images $DOCKER_TEAM/$DOCKER_REPO | grep "build" | awk 'BEGIN{FS=OFS=" "}{print $3}'`
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
+
+  if [ "$failed" = true ] ; then
+    printf "\n${red}Failed creation phase${nc}\n\n"
+    return 1;
+  else
+    printf "\n${green}Completed creation phase${nc}\n\n"
+  fi
 }
 
 function do_deploy {
 
-  printf "\n${header}Starting Docker image deployment...${nc}\n"
+  local failed=false
+
+  printf "\n${header}Starting Docker image deployment...${nc}"
 
   # We expect that when this script is ran for docker image deployment that
   # there are some particular settings set prior to starting, or are given
@@ -131,31 +221,43 @@ function do_deploy {
 
   printf "\nRegistry authentication..."
   docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
-  printf "\nRegistry upload..."
-  docker push $DOCKER_TEAM/$DOCKER_REPO:latest
+  printf "\nRegistry upload (latest)..."
+  docker push -f $DOCKER_TEAM/$DOCKER_REPO:latest
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
-  printf "\n${green}Completed deploy phase${nc}\n\n"
-}
+  printf "\nRegistry upload (tagged)..."
+  TAG=$(git rev-parse --short HEAD)
+  docker push -f $DOCKER_TEAM/$DOCKER_REPO:$TAG
+  if [[ $? != 0 ]]; then
+    failed=true;
+  fi
 
-function do_clean {
-  
-  echo "not yet implemented"
-
+  if "$failed" = true; then
+    printf "\n${red}Failed deploy phase${nc}\n\n"
+    return 1;
+  else
+    printf "\n${green}Completed deploy phase${nc}\n\n"
+  fi
 }
 
 function verify_repository {
   if [ -n "$DOCKER_TEAM" ] && [ -n "$DOCKER_REPO" ]
-  then
-    echo -Using environment variables for repository
+    then
+    echo -Using environment variables
   else
     if [ -n "$2" ] && [ -n "$3" ]
-    then
-      echo -Using script parameters for repository
+      then
+      echo -Using script parameters
       DOCKER_TEAM=$2
       DOCKER_REPO=$3
     else
-      echo -Using git information for repository
+      echo -Using git information
       DOCKER_TEAM=`git remote show origin | grep "Fetch URL:" | sed "s#^.*/\(.*\)/\(.*\).git#\1#"`
       DOCKER_REPO=`git remote show origin | grep "Fetch URL:" | sed "s#^.*/\(.*\)/\(.*\).git#\2#"`
     fi
@@ -164,12 +266,12 @@ function verify_repository {
 
 function verify_authentication {
   if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ] && [ -n "$DOCKER_EMAIL" ]
-  then
-    echo -Using environment variables for authentication
+    then
+    echo -Using environment variables
   else
     if [ -n "$4" ] && [ -n "$5" ] && [ -n "$6" ]
-    then
-      echo -Using script parameters for authentication
+      then
+      echo -Using script parameters
       DOCKER_USERNAME=$4
       DOCKER_PASSWORD=$5
       DOCKER_EMAIL=$6
@@ -191,22 +293,19 @@ nc='\033[0m' # No Color
 
 # Determine what needs to be ran
 case $1 in
-build)
-   do_build
-   ;;
-test)
-   do_test
-   ;;
-create)
-   do_create
-   ;;
-deploy)
-   do_deploy
-   ;;
-clean)
-   do_clean
-   ;;
-*)
+  build)
+  do_build
+  ;;
+  test)
+  do_test
+  ;;
+  create)
+  do_create
+  ;;
+  deploy)
+  do_deploy
+  ;;
+  *)
   printf "\n"
   printf "Usage: $0 [OPTION]\n"
   printf "  OPTION            Performs...\n"
@@ -215,8 +314,6 @@ clean)
   printf "  test              ...all tests in order of unit, integration, and functional\n"
   printf "  create            ...a Docker image\n"
   printf "  deploy            ...a Docker image\n"
-  printf "\n"
-  printf "  clean             ...all things created or populated during build or test\n"
   printf "\n"
   printf "The following values are required for the given commands:\n"
   printf "\n"
@@ -231,5 +328,5 @@ clean)
   printf "    \$DOCKER_PASSWORD\n"
   printf "    \$DOCKER_EMAIL\n"
   printf "\n"
-   ;;
-esac   
+  ;;
+esac
