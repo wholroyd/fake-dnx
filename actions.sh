@@ -228,14 +228,14 @@ function do_deploy {
   fi
 
   printf "\nRegistry upload (latest)..."
-  docker push -f $DOCKER_TEAM/$DOCKER_REPO:latest
+  docker push $DOCKER_TEAM/$DOCKER_REPO:latest
   if [[ $? != 0 ]]; then
     failed=true;
   fi
 
   printf "\nRegistry upload (tagged)..."
   TAG=$(git rev-parse --short HEAD)
-  docker push -f $DOCKER_TEAM/$DOCKER_REPO:$TAG
+  docker push $DOCKER_TEAM/$DOCKER_REPO:$TAG
   if [[ $? != 0 ]]; then
     failed=true;
   fi
