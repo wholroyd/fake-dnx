@@ -34,13 +34,15 @@ function do_build {
     # ensure we have a user writeable directory for NPM global installations
     if [[ ! -a ~/.npm-global ]]; then
       mkdir ~/.npm-global 
-      npm config set prefix '~/npm-global' 
-      if [[ $? != 0 ]]; then
-        failed=true;
-      fi
-
-      export PATH="~/npm-global/bin:${PATH}"
     fi
+
+    # ensure we have updated NPM and PATH to use the user writeable directory    
+    npm config set prefix '~/.npm-global'
+    if [[ $? != 0 ]]; then
+      failed=true;
+    fi
+
+    export PATH="~/.npm-global/bin:${PATH}"
 
     npm install
     if [[ $? != 0 ]]; then
