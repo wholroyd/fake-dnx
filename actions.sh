@@ -110,7 +110,7 @@ function do_build {
 
   if [ "$failed" = true ] ; then
     printf "\n${red}Failed build phase${nc}\n\n"
-    return 1;
+    exit 1;
   else
     printf "\n${green}Completed build phase${nc}\n\n"
   fi
@@ -143,7 +143,7 @@ function do_test {
 
   if [ "$failed" = true ]; then
     printf "\n${red}Failed testing phase${nc}\n\n"
-    return 1;
+    exit 1;
   else
     printf "\n${green}Completed testing phase${nc}\n\n"
   fi
@@ -197,7 +197,7 @@ function do_create {
 
   if [ "$failed" = true ] ; then
     printf "\n${red}Failed creation phase${nc}\n\n"
-    return 1;
+    exit 1;
   else
     printf "\n${green}Completed creation phase${nc}\n\n"
   fi
@@ -240,7 +240,7 @@ function do_deploy {
 
   if "$failed" = true; then
     printf "\n${red}Failed deploy phase${nc}\n\n"
-    return 1;
+    exit 1;
   else
     printf "\n${green}Completed deploy phase${nc}\n\n"
   fi
