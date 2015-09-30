@@ -205,7 +205,7 @@ function do_create {
   fi
 }
 
-function do_deploy {
+function do_publish {
 
   local failed=false
 
@@ -246,6 +246,10 @@ function do_deploy {
   else
     printf "\n${green}Completed deploy phase${nc}\n\n"
   fi
+}
+
+function do_deploy {
+  echo "This has not been implemented"
 }
 
 function verify_repository {
@@ -304,6 +308,9 @@ case $1 in
   create)
   do_create
   ;;
+  publish)
+  do_publish
+  ;;
   deploy)
   do_deploy
   ;;
@@ -315,7 +322,8 @@ case $1 in
   printf "  build             ...a compilation, if required\n"
   printf "  test              ...all tests in order of unit, integration, and functional\n"
   printf "  create            ...a Docker image\n"
-  printf "  deploy            ...a Docker image\n"
+  printf "  publish           ...a Docker image\n"
+  printf "  deploy            ...to service fabric\n"
   printf "\n"
   printf "The following values are required for the given commands:\n"
   printf "\n"
